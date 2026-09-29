@@ -1,0 +1,36 @@
+name: Publish latest register APK
+
+on:
+  push:
+    branches: [main]
+    paths:
+      - ".github/workflows/publish-latest-apk.yml"
+
+permissions:
+  contents: write
+
+jobs:
+  publish:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v5
+      - name: Download latest register build
+        shell: bash
+        run: |
+          set -euo pipefail
+          curl --fail --location --retry 3 "https://sdmntprcentralus.oaiusercontent.com/files/00000000-f1e8-81f5-b93e-1dbd30a50d8b/raw?se=2026-09-29T11%3A38%3A31Z&sp=r&sv=2026-02-06&sr=b&scid=c40d99da-77a5-5bae-a11c-9d63f059e36f&skoid=add8ee7d-5fc7-451e-b06e-a82b2276cf62&sktid=a48cca56-e6da-484e-a814-9c849652bcb3&skt=2026-09-29T02%3A27%3A54Z&ske=2026-09-30T02%3A27%3A54Z&sks=b&skv=2026-02-06&sig=%2BiEGtLQpvL2ug5tUTFo%2B75fmXgm4uOcD5AtSS66TyJc%3D" -o /tmp/register.zip
+          rm -rf /tmp/register-unpacked
+          mkdir -p /tmp/register-unpacked
+          unzip -o /tmp/register.zip -d /tmp/register-unpacked
+          cp /tmp/register-unpacked/app-debug.apk restaurant-register.apk
+          test -s restaurant-register.apk
+      - name: Publish APK and remove one-time publisher
+        shell: bash
+        run: |
+          set -euo pipefail
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git add restaurant-register.apk
+          git rm .github/workflows/publish-latest-apk.yml
+          git commit -m "Publish latest Restaurant Register APK"
+          git push
