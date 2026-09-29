@@ -1,0 +1,36 @@
+name: Publish latest Owner APK
+
+on:
+  push:
+    branches: [main]
+    paths:
+      - ".github/workflows/publish-owner-latest.yml"
+
+permissions:
+  contents: write
+
+jobs:
+  publish:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v5
+      - name: Download latest Owner APK
+        shell: bash
+        run: |
+          set -euo pipefail
+          curl --fail --location --retry 3 "https://sdmntprcentralus.oaiusercontent.com/files/00000000-deec-81f5-b389-26662ccc0e1c/raw?se=2026-09-29T13%3A38%3A47Z&sp=r&sv=2026-02-06&sr=b&scid=27e9c774-09a0-52e0-90b6-f69885b4c583&skoid=add8ee7d-5fc7-451e-b06e-a82b2276cf62&sktid=a48cca56-e6da-484e-a814-9c849652bcb3&skt=2026-09-29T11%3A38%3A53Z&ske=2026-09-30T11%3A38%3A53Z&sks=b&skv=2026-02-06&sig=ExkuE2hewlPX8/Y2PgzTsSMvUzYN53snyOtUkMsyg88%3D" -o /tmp/owner.zip
+          rm -rf /tmp/owner-unpacked
+          mkdir -p /tmp/owner-unpacked
+          unzip -o /tmp/owner.zip -d /tmp/owner-unpacked
+          cp /tmp/owner-unpacked/app-debug.apk restaurant-owner.apk
+          test -s restaurant-owner.apk
+      - name: Publish Owner APK and remove one-time publisher
+        shell: bash
+        run: |
+          set -euo pipefail
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git add restaurant-owner.apk
+          git rm .github/workflows/publish-owner-latest.yml
+          git commit -m "Publish latest QR pairing Owner APK"
+          git push
