@@ -1,0 +1,40 @@
+name: Publish accounting reset builds
+
+on:
+  push:
+    branches: [main]
+    paths:
+      - ".github/workflows/publish-accounting-reset.yml"
+
+permissions:
+  contents: write
+
+jobs:
+  publish:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v5
+      - name: Download latest APK artifacts
+        shell: bash
+        run: |
+          set -euo pipefail
+          curl --fail --location --retry 3 "https://sdmntpreastus2.oaiusercontent.com/files/00000000-9e38-81f6-b16b-0c5a811c8c06/raw?se=2026-09-29T14%3A38%3A37Z&sp=r&sv=2026-02-06&sr=b&scid=d879ba51-363b-5d14-ae2d-21f8c088376d&skoid=add8ee7d-5fc7-451e-b06e-a82b2276cf62&sktid=a48cca56-e6da-484e-a814-9c849652bcb3&skt=2026-09-29T10%3A20%3A15Z&ske=2026-09-30T10%3A20%3A15Z&sks=b&skv=2026-02-06&sig=ZrtxkXsXNDCcQMgl4UCWu%2BekBwLFwu9euD6oBmVDzOM%3D" -o /tmp/register.zip
+          curl --fail --location --retry 3 "https://sdmntprnorthcentralus.oaiusercontent.com/files/00000000-58f4-822f-83f1-f05d346869a8/raw?se=2026-09-29T14%3A38%3A37Z&sp=r&sv=2026-02-06&sr=b&scid=80b19e48-4f75-5332-93c2-9d625beaa085&skoid=add8ee7d-5fc7-451e-b06e-a82b2276cf62&sktid=a48cca56-e6da-484e-a814-9c849652bcb3&skt=2026-09-29T11%3A55%3A12Z&ske=2026-09-30T11%3A55%3A12Z&sks=b&skv=2026-02-06&sig=562wPwhTs2rGtuFOje7KHBqwizSwC8IsmqPvMFnwQco%3D" -o /tmp/owner.zip
+          rm -rf /tmp/register-unpacked /tmp/owner-unpacked
+          mkdir -p /tmp/register-unpacked /tmp/owner-unpacked
+          unzip -o /tmp/register.zip -d /tmp/register-unpacked
+          unzip -o /tmp/owner.zip -d /tmp/owner-unpacked
+          cp /tmp/register-unpacked/app-debug.apk restaurant-register.apk
+          cp /tmp/owner-unpacked/app-debug.apk restaurant-owner.apk
+          test -s restaurant-register.apk
+          test -s restaurant-owner.apk
+      - name: Publish APKs and remove one-time publisher
+        shell: bash
+        run: |
+          set -euo pipefail
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git add restaurant-register.apk restaurant-owner.apk
+          git rm .github/workflows/publish-accounting-reset.yml
+          git commit -m "Publish accounting reset and receipt spacing builds"
+          git push
