@@ -1,0 +1,40 @@
+name: Publish synchronized Register and Owner APKs
+
+on:
+  push:
+    branches: [main]
+    paths:
+      - ".github/workflows/publish-current-apks.yml"
+
+permissions:
+  contents: write
+
+jobs:
+  publish:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v5
+      - name: Download current build artifacts
+        shell: bash
+        run: |
+          set -euo pipefail
+          curl --fail --location --retry 3 "https://sdmntprcentralus.oaiusercontent.com/files/00000000-1114-81f5-929d-056d11bb5e74/raw?se=2026-09-29T14%3A53%3A44Z&sp=r&sv=2026-02-06&sr=b&scid=46678211-3bb1-5960-a307-50ee6333ee30&skoid=add8ee7d-5fc7-451e-b06e-a82b2276cf62&sktid=a48cca56-e6da-484e-a814-9c849652bcb3&skt=2026-09-29T02%3A27%3A20Z&ske=2026-09-30T02%3A27%3A20Z&sks=b&skv=2026-02-06&sig=mFzySUEeHEdYOEbzG5HDD27yKutZHKYyTvZ6UQYKzpM%3D" -o /tmp/register.zip
+          curl --fail --location --retry 3 "https://sdmntprcentralus.oaiusercontent.com/files/00000000-7ed8-81f5-a011-9ce437c81c5e/raw?se=2026-09-29T14%3A53%3A45Z&sp=r&sv=2026-02-06&sr=b&scid=d6d425ac-841c-55dd-b918-cd9e17892fef&skoid=add8ee7d-5fc7-451e-b06e-a82b2276cf62&sktid=a48cca56-e6da-484e-a814-9c849652bcb3&skt=2026-09-29T13%3A07%3A10Z&ske=2026-09-30T13%3A07%3A10Z&sks=b&skv=2026-02-06&sig=7ZywFnov8MNvErLg2YxF8/DVgUepFcUN4ubig2YaCJs%3D" -o /tmp/owner.zip
+          rm -rf /tmp/register-unpacked /tmp/owner-unpacked
+          mkdir -p /tmp/register-unpacked /tmp/owner-unpacked
+          unzip -o /tmp/register.zip -d /tmp/register-unpacked
+          unzip -o /tmp/owner.zip -d /tmp/owner-unpacked
+          cp /tmp/register-unpacked/app-debug.apk restaurant-register.apk
+          cp /tmp/owner-unpacked/app-debug.apk restaurant-owner.apk
+          test -s restaurant-register.apk
+          test -s restaurant-owner.apk
+      - name: Publish APKs and remove one-time publisher
+        shell: bash
+        run: |
+          set -euo pipefail
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git add restaurant-register.apk restaurant-owner.apk
+          git rm .github/workflows/publish-current-apks.yml
+          git commit -m "Publish synchronized current Register and Owner APKs"
+          git push
