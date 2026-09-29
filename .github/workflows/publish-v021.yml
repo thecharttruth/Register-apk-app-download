@@ -1,0 +1,42 @@
+name: Publish version 0.2.1 apps
+
+on:
+  push:
+    branches: [main]
+    paths:
+      - ".github/workflows/publish-v021.yml"
+
+permissions:
+  contents: write
+
+jobs:
+  publish:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v5
+      - name: Download versioned APK artifacts
+        shell: bash
+        run: |
+          set -euo pipefail
+          curl --fail --location --retry 3 "https://sdmntprcentralus.oaiusercontent.com/files/00000000-6208-81f5-8410-c99ee6e9ab05/raw?se=2026-09-29T17%3A13%3A38Z&sp=r&sv=2026-02-06&sr=b&scid=fe9b5825-8063-5bee-854d-4c939799b294&skoid=9b9c502c-68d7-438f-bea0-600feb684c90&sktid=a48cca56-e6da-484e-a814-9c849652bcb3&skt=2026-09-29T14%3A49%3A18Z&ske=2026-09-30T14%3A49%3A18Z&sks=b&skv=2026-02-06&sig=Kgq5lHjQGdVuIDX5np1bb/bZSpm0GYf3%2BTmmSlJA3K4%3D" -o /tmp/register.zip
+          curl --fail --location --retry 3 "https://sdmntprcentralus.oaiusercontent.com/files/00000000-fe38-81f5-a66c-6a707d6ef453/raw?se=2026-09-29T17%3A13%3A08Z&sp=r&sv=2026-02-06&sr=b&scid=a85dcfc1-40d9-56da-8b3d-5ea5a4c1e89b&skoid=9b9c502c-68d7-438f-bea0-600feb684c90&sktid=a48cca56-e6da-484e-a814-9c849652bcb3&skt=2026-09-29T03%3A54%3A11Z&ske=2026-09-30T03%3A54%3A11Z&sks=b&skv=2026-02-06&sig=GbOp7hT0R2xqsyWtMJbpF09aqSE3reGAnrA7CkJWKjU%3D" -o /tmp/owner.zip
+          rm -rf /tmp/register-unpacked /tmp/owner-unpacked
+          mkdir -p /tmp/register-unpacked /tmp/owner-unpacked
+          unzip -o /tmp/register.zip -d /tmp/register-unpacked
+          unzip -o /tmp/owner.zip -d /tmp/owner-unpacked
+          cp /tmp/register-unpacked/app-debug.apk restaurant-register-v0.2.1.apk
+          cp /tmp/owner-unpacked/app-debug.apk restaurant-owner-v0.2.1.apk
+          cp restaurant-register-v0.2.1.apk restaurant-register.apk
+          cp restaurant-owner-v0.2.1.apk restaurant-owner.apk
+          test -s restaurant-register.apk
+          test -s restaurant-owner.apk
+      - name: Publish APKs and remove one-time publisher
+        shell: bash
+        run: |
+          set -euo pipefail
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git add restaurant-register.apk restaurant-owner.apk restaurant-register-v0.2.1.apk restaurant-owner-v0.2.1.apk
+          git rm .github/workflows/publish-v021.yml
+          git commit -m "Publish Android version 0.2.1 apps"
+          git push
